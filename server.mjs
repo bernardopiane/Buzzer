@@ -60,8 +60,8 @@ class GameServer {
      * @returns {boolean}
      */
     validateSettings(settings) {
-        return settings.maxPlayers >= CONFIG.MIN_PLAYERS && 
-               settings.maxPlayers <= CONFIG.MAX_PLAYERS;
+        return settings.maxPlayers >= CONFIG.MIN_PLAYERS &&
+            settings.maxPlayers <= CONFIG.MAX_PLAYERS;
     }
 
     /**
@@ -85,17 +85,17 @@ class GameServer {
      * @returns {boolean}
      */
     handleLogin(socketId, name) {
-        if (!this.#gameState.isAcceptingPlayers || 
+        if (!this.#gameState.isAcceptingPlayers ||
             this.#gameState.players.size >= this.#gameState.maxPlayers) {
             return false;
         }
-        
+
         console.log(`Player ${name} logged in`);
         this.#gameState.players.set(socketId, name);
-        
+
         // Emit updated player list to all clients
         this.#io.emit('playerUpdate', this.#getPlayersArray());
-        
+
         return true;
     }
 
@@ -115,7 +115,7 @@ class GameServer {
      * @returns {boolean}
      */
     handleBuzz(playerId) {
-        if (!this.#gameState.isAcceptingBuzzers || 
+        if (!this.#gameState.isAcceptingBuzzers ||
             !this.#gameState.players.has(playerId)) {
             return false;
         }
@@ -138,8 +138,12 @@ class GameServer {
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
+    // cors: {
+    //     origin: process.env.NODE_ENV === 'development' ? '*' : undefined
+    // }
     cors: {
-        origin: process.env.NODE_ENV === 'development' ? '*' : undefined
+        origin: '*', // Allow all origins
+        methods: ['GET', 'POST']
     }
 });
 
@@ -152,11 +156,11 @@ app.use(express.static(join(__dirname, 'public')));
 
 // Routes
 app.get('/', (req, res) => {
-    const isLocalhost = req.ip === '::1' || 
-                       req.ip === '127.0.0.1' || 
-                       req.hostname === 'localhost';
-                       
-    const page = !isLocalhost ? 'admin.html' : 'index.html';
+    const isLocalhost = req.ip === '::1' ||
+        req.ip === '127.0.0.1' ||
+        req.hostname === 'localhost';
+
+    const page = isLocalhost ? 'admin.html' : 'index.html';
     res.sendFile(join(__dirname, page));
 });
 
@@ -171,7 +175,7 @@ io.on('connection', (socket) => {
 
     socket.on('login', (name) => {
         if (typeof name !== 'string') return;
-        
+
         const success = gameServer.handleLogin(socket.id, name);
         if (success) {
             socket.emit('login success', `Welcome, ${name}!`);
@@ -189,7 +193,7 @@ io.on('connection', (socket) => {
 
     socket.on('settings', (settings) => {
         if (!settings || typeof settings.maxPlayers !== 'number') return;
-        
+
         const success = gameServer.updateSettings(settings);
         if (!success) {
             socket.emit('settings error', 'Invalid settings');
@@ -207,9 +211,10 @@ io.on('connection', (socket) => {
 });
 
 // Start server
-server.listen(CONFIG.PORT, () => {
-    console.log(`Server running at http://localhost:${CONFIG.PORT}`);
+server.listen(3000, '0.0.0.0', () => {
+    console.log(`Server running at http://localhost:3000`);
 });
+
 
 // Error handling
 process.on('uncaughtException', (error) => {
