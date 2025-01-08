@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +25,7 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .card-header {
@@ -133,9 +134,10 @@
         }
     </style>
 </head>
+
 <body>
     <h1>Game Admin Dashboard</h1>
-    
+
     <div id="alerts">
         <div class="alert error" id="errorAlert"></div>
         <div class="alert success" id="successAlert"></div>
@@ -147,13 +149,7 @@
             <form id="settingsForm" class="settings-form">
                 <div class="form-group">
                     <label for="maxPlayers">Maximum Players (2-8):</label>
-                    <input type="number" 
-                           id="maxPlayers" 
-                           name="maxPlayers" 
-                           min="2" 
-                           max="8" 
-                           value="4" 
-                           required>
+                    <input type="number" id="maxPlayers" name="maxPlayers" min="2" max="8" value="4" required>
                 </div>
                 <div class="button-group">
                     <button type="submit">Save Settings</button>
@@ -170,9 +166,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="card">
+            <div class="card-header">IP Addresses</div>
+            <div id="host-ip">
+                <!-- Displays the Host IP address -->
+                <p>Host IP: <span id="host-ip-address">Loading</span></p>
+            </div>
+        </div>
     </div>
 
     <script>
+
+        async function fetchPublicIp() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                hostIpElement.textContent = data.ip + ":3000";
+            } catch (error) {
+                hostIpElement.textContent = 'Error fetching IP';
+                console.error('Error fetching public IP:', error);
+            }
+        }
+
+        fetchPublicIp();
+
         const socket = io();
         const settingsForm = document.getElementById('settingsForm');
         const maxPlayersInput = document.getElementById('maxPlayers');
@@ -180,6 +198,7 @@
         const resetBuzzerBtn = document.getElementById('resetBuzzer');
         const errorAlert = document.getElementById('errorAlert');
         const successAlert = document.getElementById('successAlert');
+        const hostIpElement = document.getElementById('host-ip-address');
 
         // Utility functions
         function showAlert(message, type) {
@@ -193,7 +212,7 @@
 
         function updatePlayerList(players) {
             playerList.innerHTML = players.length ? '' : '<div class="player-card">Waiting for players to connect...</div>';
-            
+
             players.forEach(player => {
                 const playerElement = document.createElement('div');
                 playerElement.className = 'player-card';
@@ -211,7 +230,7 @@
         settingsForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const maxPlayers = parseInt(maxPlayersInput.value);
-            
+
             socket.emit('settings', { maxPlayers });
         });
 
@@ -264,4 +283,5 @@
         });
     </script>
 </body>
+
 </html>
