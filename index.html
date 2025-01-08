@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Player Interface</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .login-screen, .game-screen {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .buzzer-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #cc0000;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: transform 0.1s, background-color 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .buzzer-button:hover {
+            background: #990000;
+        }
+
+        .buzzer-button:active {
+            transform: scale(0.95);
+        }
+
+        .buzzer-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .player-list {
+            margin-top: 20px;
+        }
+
+        .player-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .status.active {
+            background: #e6ffe6;
+            color: #006600;
+        }
+
+        .status.buzzed {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .alert.error {
+            background: #ffe6e6;
+            color: #cc0000;
+            border: 1px solid #ffcccc;
+        }
+
+        .alert.success {
+            background: #e6ffe6;
+            color: #006600;
+            border: 1px solid #ccffcc;
+        }
+
+        .login-button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .login-button:hover {
+            background: #0052a3;
+        }
+
+        #playerStatus {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="alerts">
+        <div class="alert error" id="errorAlert"></div>
+        <div class="alert success" id="successAlert"></div>
+    </div>
+
+    <div class="login-screen" id="loginScreen">
+        <div class="header">
+            <h1>Join Game</h1>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="playerName">Your Name:</label>
+                <input type="text" 
+                       id="playerName" 
+                       name="playerName" 
+                       placeholder="Enter your name" 
+                       required 
+                       minlength="2" 
+                       maxlength="20">
+            </div>
+            <button type="submit" class="login-button">Join Game</button>
+        </form>
+    </div>
+
+    <div class="game-screen" id="gameScreen">
+        <div class="header">
+            <h1>Game Room</h1>
+        </div>
+        
+        <div id="playerStatus">Waiting for your turn...</div>
+        
+        <button id="buzzerButton" class="buzzer-button">BUZZ!</button>
+        
+        <div class="player-list">
+            <h2>Players</h2>
+            <div id="playerList"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const loginScreen = document.getElementById('loginScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const loginForm = document.getElementById('loginForm');
+        const playerNameInput = document.getElementById('playerName');
+        const buzzerButton = document.getElementById('buzzerButton');
+        const playerList = document.getElementById('playerList');
+        const playerStatus = document.getElementById('playerStatus');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        let currentPlayer = null;
+        let canBuzz = true;
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alert = type === 'error' ? errorAlert : successAlert;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        function updatePlayerList(players) {
+            console.log("Players:", players.length);
+            console.log("Players:", players);
+            playerList.innerHTML = players.length ? '' : '<div class="player-card">Waiting for players to join...</div>';
+
+            players.forEach(player => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player-card';
+                playerElement.innerHTML = `
+                    <span>${player.name}${player.name === currentPlayer ? ' (You)' : ''}</span>
+                    <span class="status ${player.buzzed ? 'buzzed' : 'active'}">
+                        ${player.buzzed ? 'Buzzed' : 'Active'}
+                    </span>
+                `;
+                playerList.appendChild(playerElement);
+            });
+        }
+
+        // Event Listeners
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = playerNameInput.value.trim();
+            if (name) {
+                socket.emit('login', name);
+                currentPlayer = name;
+            }
+        });
+
+        buzzerButton.addEventListener('click', () => {
+            if (canBuzz) {
+                socket.emit('buzz', currentPlayer);
+                buzzerButton.disabled = true;
+                playerStatus.textContent = 'You buzzed in!';
+            }
+        });
+
+        // Handle keyboard events for buzzer
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameScreen.style.display === 'block' && canBuzz) {
+                buzzerButton.click();
+            }
+        });
+
+        // Socket Events
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('login success', (message) => {
+            showAlert(message, 'success');
+            loginScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+        });
+
+        socket.on('login error', (error) => {
+            showAlert(error, 'error');
+        });
+
+        socket.on('playerUpdate', (players) => {
+            console.log('Player update received:', players);
+            updatePlayerList(players);
+        });
+
+        socket.on('buzz', (playerName) => {
+            canBuzz = false;
+            if (playerName !== currentPlayer) {
+                showAlert(`${playerName} has buzzed in!`, 'error');
+                playerStatus.textContent = `${playerName} has buzzed in!`;
+            }
+            buzzerButton.disabled = true;
+        });
+
+        socket.on('buzzerReset', () => {
+            canBuzz = true;
+            buzzerButton.disabled = false;
+            playerStatus.textContent = 'Your turn! Press SPACE or click to buzz in.';
+            showAlert('Buzzer has been reset', 'success');
+        });
+
+        socket.on('disconnect', () => {
+            showAlert('Disconnected from server. Trying to reconnect...', 'error');
+        });
+    </script>
+</body>
+</html>
