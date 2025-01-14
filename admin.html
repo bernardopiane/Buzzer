@@ -211,6 +211,7 @@
         }
 
         function updatePlayerList(players) {
+            console.log("Players:", players.length);
             playerList.innerHTML = players.length ? '' : '<div class="player-card">Waiting for players to connect...</div>';
 
             players.forEach(player => {

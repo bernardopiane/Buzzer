@@ -4,14 +4,8 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
-
-// Constants
-const CONFIG = {
-    PORT: process.env.PORT || 3000,
-    MIN_PLAYERS: 2,
-    MAX_PLAYERS: 8,
-    DEFAULT_MAX_PLAYERS: 4
-};
+import { CONFIG } from './config.js';
+import { Player } from './model/player.js';
 
 // Types (using JSDoc for type checking)
 /**
@@ -19,7 +13,7 @@ const CONFIG = {
  * @property {number} maxPlayers - Maximum number of players allowed
  * @property {boolean} isAcceptingPlayers - Whether new players can join
  * @property {boolean} isAcceptingBuzzers - Whether buzzer inputs are accepted
- * @property {Map<string, string>} players - Map of socket IDs to player names
+ * @property {Map<string, Player>} players - Map of socket IDs to Player instances
  */
 
 /**
@@ -48,10 +42,7 @@ class GameServer {
      * @returns {Array<{name: string, buzzed: boolean}>}
      */
     #getPlayersArray() {
-        return Array.from(this.#gameState.players.entries()).map(([id, name]) => ({
-            name,
-            buzzed: false // You might want to track this state per player
-        }));
+        return Array.from(this.#gameState.players.values()).map((player) => player.toJSON());
     }
 
     /**
@@ -91,9 +82,9 @@ class GameServer {
         }
 
         console.log(`Player ${name} logged in`);
-        this.#gameState.players.set(socketId, name);
+        const player = new Player(name);
+        this.#gameState.players.set(socketId, player);
 
-        // Emit updated player list to all clients
         this.#io.emit('playerUpdate', this.#getPlayersArray());
 
         return true;
@@ -105,7 +96,6 @@ class GameServer {
      */
     handleDisconnect(socketId) {
         this.#gameState.players.delete(socketId);
-        // Emit updated player list after disconnect
         this.#io.emit('playerUpdate', this.#getPlayersArray());
     }
 
@@ -115,13 +105,14 @@ class GameServer {
      * @returns {boolean}
      */
     handleBuzz(playerId) {
-        if (!this.#gameState.isAcceptingBuzzers ||
-            !this.#gameState.players.has(playerId)) {
+        const player = this.#gameState.players.get(playerId);
+        if (!this.#gameState.isAcceptingBuzzers || !player) {
             return false;
         }
 
+        player.buzz();
         this.#gameState.isAcceptingBuzzers = false;
-        this.#io.emit('buzz', this.#gameState.players.get(playerId));
+        this.#io.emit('buzz', player.name);
         return true;
     }
 
@@ -129,6 +120,7 @@ class GameServer {
      * Resets buzzer state
      */
     resetBuzzer() {
+        this.#gameState.players.forEach((player) => player.resetBuzz());
         this.#gameState.isAcceptingBuzzers = true;
         this.#io.emit('buzzerReset');
     }
@@ -138,11 +130,8 @@ class GameServer {
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-    // cors: {
-    //     origin: process.env.NODE_ENV === 'development' ? '*' : undefined
-    // }
     cors: {
-        origin: '*', // Allow all origins
+        origin: '*',
         methods: ['GET', 'POST']
     }
 });
@@ -156,12 +145,11 @@ app.use(express.static(join(__dirname, 'public')));
 
 // Routes
 app.get('/', (req, res) => {
-    const isLocalhost = req.ip === '::1' ||
-        req.ip === '127.0.0.1' ||
-        req.hostname === 'localhost';
+    res.sendFile(join(__dirname, 'index.html'));
+});
 
-    const page = isLocalhost ? 'admin.html' : 'index.html';
-    res.sendFile(join(__dirname, page));
+app.get('/admin', (req, res) => {
+    res.sendFile(join(__dirname, 'admin.html'));
 });
 
 // Socket.io event handlers
@@ -214,7 +202,6 @@ io.on('connection', (socket) => {
 server.listen(3000, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:3000`);
 });
-
 
 // Error handling
 process.on('uncaughtException', (error) => {
