@@ -33,7 +33,7 @@ class GameServer {
             maxPlayers: CONFIG.DEFAULT_MAX_PLAYERS,
             isAcceptingPlayers: true,
             isAcceptingBuzzers: true,
-            players: new Map()
+            players: new Map(),
         };
     }
 
@@ -124,6 +124,16 @@ class GameServer {
         this.#gameState.isAcceptingBuzzers = true;
         this.#io.emit('buzzerReset');
     }
+
+    changeScore(name, amount) {
+        const player = Array.from(this.#gameState.players.values()).find(p => p.name === name);
+        console.log(player);
+        if (!player) return;
+        player.setScore(amount);
+        this.#io.emit('playerUpdate', this.#getPlayersArray());
+    }
+
+
 }
 
 // Setup Express and Socket.io
@@ -191,6 +201,11 @@ io.on('connection', (socket) => {
     socket.on('resetBuzzer', () => {
         gameServer.resetBuzzer();
     });
+
+    socket.on('scoreChange', (data) => {
+        if (typeof data.name !== 'string' || typeof data.score !== 'number') return;
+        gameServer.changeScore(data.name, data.score);
+    })
 
     socket.on('disconnect', () => {
         gameServer.handleDisconnect(socket.id);

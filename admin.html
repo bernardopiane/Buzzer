@@ -97,6 +97,17 @@
             border-radius: 4px;
         }
 
+        .player-score {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .player-score input[type="number"] {
+            width: 40px;
+            margin: 0 10px;
+        }
+
         .status {
             display: inline-block;
             padding: 4px 8px;
@@ -195,6 +206,7 @@
         const settingsForm = document.getElementById('settingsForm');
         const maxPlayersInput = document.getElementById('maxPlayers');
         const playerList = document.getElementById('playerList');
+        const previousPlayersList = document.getElementById('previousPlayers');
         const resetBuzzerBtn = document.getElementById('resetBuzzer');
         const errorAlert = document.getElementById('errorAlert');
         const successAlert = document.getElementById('successAlert');
@@ -222,8 +234,28 @@
                     <span class="status ${player.buzzed ? 'buzzed' : 'active'}">
                         ${player.buzzed ? 'Buzzed' : 'Active'}
                     </span>
+                    <div class="player-score">
+                        <button type="button" class="score-change" data-direction="-1">-</button>
+                        <input type="number" value="${player.score}" />
+                        <button type="button" class="score-change" data-direction="1">+</button>
+                    </div>
                 `;
                 playerList.appendChild(playerElement);
+
+                const scoreChangeButtons = playerElement.querySelectorAll('.score-change');
+                scoreChangeButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const direction = parseInt(button.dataset.direction);
+                        const newScore = player.score + direction;
+                        socket.emit('scoreChange', { name: player.name, score: newScore });
+                    });
+                });
+
+                const scoreInput = playerElement.querySelector('.player-score input');
+                scoreInput.addEventListener('change', () => {
+                    const newScore = parseInt(scoreInput.value);
+                    socket.emit('scoreChange', { name: player.name, score: newScore });
+                });
             });
         }
 
@@ -283,6 +315,3 @@
             showAlert('Disconnected from server. Trying to reconnect...', 'error');
         });
     </script>
-</body>
-
-</html>

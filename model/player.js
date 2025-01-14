@@ -10,7 +10,6 @@ export class Player {
         this.name = name;
         this.score = 0;
         this.buzzed = false;
-        this.sockedId = null;
     }
 
     /**
@@ -31,8 +30,8 @@ export class Player {
      * Increments the score of the player
      * @param {number} amount - amount to increment the score by
      */
-    incrementScore(amount) {
-        this.score += amount;
+    setScore(amount) {
+        this.score = amount;
     }
 
     /**

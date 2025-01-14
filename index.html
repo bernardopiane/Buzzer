@@ -184,12 +184,18 @@
 
         <div id="playerStatus">Waiting for your turn...</div>
 
-        <button id="buzzerButton" class="buzzer-button">BUZZ!</button>
-
         <div class="player-list">
             <h2>Players</h2>
             <div id="playerList"></div>
         </div>
+
+        <div class="scoreboard">
+            <h2>Scores</h2>
+            <div id="scoreboardList"></div>
+        </div>
+
+        <button id="buzzerButton" class="buzzer-button">BUZZ!</button>
+
     </div>
 
     <script>
@@ -200,6 +206,7 @@
         const playerNameInput = document.getElementById('playerName');
         const buzzerButton = document.getElementById('buzzerButton');
         const playerList = document.getElementById('playerList');
+        const scoreboardList = document.getElementById('scoreboardList');
         const playerStatus = document.getElementById('playerStatus');
         const errorAlert = document.getElementById('errorAlert');
         const successAlert = document.getElementById('successAlert');
@@ -232,6 +239,22 @@
                     </span>
                 `;
                 playerList.appendChild(playerElement);
+            });
+        }
+
+        function updateScoreboard(players) {
+            console.log("Players:", players.length);
+            console.log("Players:", players);
+            scoreboardList.innerHTML = players.length ? '' : '<div class="scoreboard-card">Waiting for scores...</div>';
+
+            players.forEach(player => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'scoreboard-card';
+                playerElement.innerHTML = `
+                    <span>${player.name}</span>
+                    <span class="score">${player.score}</span>
+                `;
+                scoreboardList.appendChild(playerElement);
             });
         }
 
@@ -278,6 +301,7 @@
         socket.on('playerUpdate', (players) => {
             console.log('Player update received:', players);
             updatePlayerList(players);
+            updateScoreboard(players);
         });
 
         socket.on('buzz', (playerName) => {
