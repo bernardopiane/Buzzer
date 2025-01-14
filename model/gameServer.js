@@ -1,5 +1,19 @@
 import { CONFIG } from '../config.js';
-import {Player } from './player.js';
+import { Player } from './player.js';
+
+// Types (using JSDoc for type checking)
+/**
+ * @typedef {Object} GameState
+ * @property {number} maxPlayers - Maximum number of players allowed
+ * @property {boolean} isAcceptingPlayers - Whether new players can join
+ * @property {boolean} isAcceptingBuzzers - Whether buzzer inputs are accepted
+ * @property {Map<string, Player>} players - Map of socket IDs to Player instances
+ */
+
+/**
+ * @typedef {Object} GameSettings
+ * @property {number} maxPlayers - Maximum number of players allowed
+ */
 
 export class GameServer {
     /** @type {GameState} */
@@ -115,3 +129,5 @@ export class GameServer {
 
 
 }
+
+

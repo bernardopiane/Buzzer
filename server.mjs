@@ -4,22 +4,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
-import { Player } from './model/player.js';
 import { GameServer } from './model/gameServer.js';
-
-// Types (using JSDoc for type checking)
-/**
- * @typedef {Object} GameState
- * @property {number} maxPlayers - Maximum number of players allowed
- * @property {boolean} isAcceptingPlayers - Whether new players can join
- * @property {boolean} isAcceptingBuzzers - Whether buzzer inputs are accepted
- * @property {Map<string, Player>} players - Map of socket IDs to Player instances
- */
-
-/**
- * @typedef {Object} GameSettings
- * @property {number} maxPlayers - Maximum number of players allowed
- */
 
 // Setup Express and Socket.io
 const app = express();
