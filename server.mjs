@@ -23,13 +23,48 @@ const gameServer = new GameServer(io);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(express.static(join(__dirname, 'public')));
 
+// Create login file
+const fs = require('fs');
+const path = require('path');
+
+const credentials = {
+    username: 'admin',
+    password: 'password123'
+};
+
+
+function getLoginCredentials(folderPath, fileName) {
+    const filePath = path.join(folderPath, fileName);
+    if (fs.existsSync(filePath)) {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        try {
+            // Parse the file and assign the credentials
+            const parsedCredentials = JSON.parse(fileContent);
+            credentials.username = parsedCredentials.username;
+            credentials.password = parsedCredentials.password;
+            return credentials;
+        } catch (error) {
+            console.error(`Error parsing login credentials: ${error}`);
+            return null;
+        }
+    } else {
+        // Create the file with default credentials
+        const credentialsJson = JSON.stringify(credentials, null, 2);
+        fs.writeFileSync(filePath, credentialsJson);
+        return credentials;
+    }
+}
+
+getLoginCredentials(__dirname, 'login.json');
+// End of create login file
+
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(join(__dirname, 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-    const auth = { login: 'admin', password: 'password' }; // Default credentials
+    const auth = { login: credentials.username, password: credentials.password }; // Default credentials
 
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
