@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
     socket.on('scoreChange', (data) => {
         if (typeof data.name !== 'string' || typeof data.score !== 'number') return;
         gameServer.changeScore(data.name, data.score);
-    })
+    });
 
     socket.on('disconnect', () => {
         gameServer.handleDisconnect(socket.id);

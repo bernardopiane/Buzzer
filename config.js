@@ -3,5 +3,4 @@ export const CONFIG = {
     MIN_PLAYERS: 2,
     MAX_PLAYERS: 8,
     DEFAULT_MAX_PLAYERS: 4,
-    ADMIN_PASSWORD: 'password'
 };
