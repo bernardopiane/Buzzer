@@ -212,6 +212,10 @@
         const successAlert = document.getElementById('successAlert');
         const hostIpElement = document.getElementById('host-ip-address');
 
+        // Get player list using "getPlayerList"
+        socket.emit('getPlayerList');
+
+
         // Utility functions
         function showAlert(message, type) {
             const alert = type === 'error' ? errorAlert : successAlert;

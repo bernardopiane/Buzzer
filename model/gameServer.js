@@ -127,6 +127,9 @@ export class GameServer {
         this.#io.emit('playerUpdate', this.#getPlayersArray());
     }
 
+    fetchPlayerList() {
+        this.#io.emit('playerUpdate', this.#getPlayersArray());
+    }
 
 }
 

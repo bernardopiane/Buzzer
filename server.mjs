@@ -97,6 +97,10 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on("getPlayerList", () => {
+        gameServer.fetchPlayerList();
+    });
+
     socket.on('buzz', () => {
         const success = gameServer.handleBuzz(socket.id);
         if (!success) {
